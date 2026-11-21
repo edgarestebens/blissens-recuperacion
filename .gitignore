@@ -1,0 +1,10 @@
+# Datos reales y base local: nunca se versionan
+*.xlsx
+!data/agenda_anonimizada.xlsx
+*.db
+*.sqlite
+data/.salt
+data/linea_base.json
+documentos iniciales/
+__pycache__/
+.venv/
