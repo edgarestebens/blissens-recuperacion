@@ -262,10 +262,14 @@ def calcular(con: sqlite3.Connection, R) -> dict:
     kpis = {
         "citas": total,
         "atendidas": int(n.get("atendido", 0)),
+        "confirmadas": int(n.get("confirmada", 0)),
+        "agendadas": int(n.get("agendada", 0)),
         "no_asiste": int(n.get("no_asiste", 0)),
         "cancelaciones": int(sum(n.get(e, 0) for e in CANCELACION)),
         "cambio_fecha": cambio,
         "ocupacion": round(en_pie / base, 3) if base > 0 else None,
+        "ocupacion_num": en_pie,
+        "ocupacion_den": base,
         "huecos_libres": int((huecos["ocupado"] == "No").sum()) if not huecos.empty else 0,
         "huecos_reocupados": int((huecos["ocupado"] == "Sí").sum()) if not huecos.empty else 0,
     }

@@ -125,25 +125,81 @@ tab_panel, tab_cola, tab_chat = st.tabs(
 with tab_panel:
     with st.container(border=True):
         st.subheader("Agenda del día")
-        c1, c2, c3, c4, c5, c6 = st.columns(6)
-        c1.metric("Citas", k["citas"])
-        c2.metric("Atendidas", k["atendidas"])
-        c3.metric("No asistieron", k["no_asiste"])
-        c4.metric("Cancelaciones", k["cancelaciones"])
-        c5.metric("Huecos libres", k["huecos_libres"])
-        c6.metric(
+        r1 = st.columns(4)
+        r1[0].metric(
+            "Citas",
+            k["citas"],
+            help="Todas las citas agendadas para la fecha de referencia, sin importar el estado.",
+        )
+        r1[1].metric(
+            "Atendidas",
+            k["atendidas"],
+            help="Citas con estado Atendido en la fecha de referencia.",
+        )
+        r1[2].metric(
+            "Confirmadas",
+            k.get("confirmadas", 0),
+            help="Citas confirmadas por teléfono, WhatsApp o email. Entran en el numerador de la ocupación.",
+        )
+        r1[3].metric(
+            "Agendadas",
+            k.get("agendadas", 0),
+            help="Citas aún no confirmadas (por ejemplo no confirmado o notificación enviada). Entran en el numerador de la ocupación.",
+        )
+        r2 = st.columns(5)
+        r2[0].metric(
+            "No asistieron",
+            k["no_asiste"],
+            help="Citas con estado No asiste en la fecha de referencia.",
+        )
+        r2[1].metric(
+            "Cancelaciones",
+            k["cancelaciones"],
+            help="Citas anuladas, incluidas las anuladas por el paciente vía WhatsApp.",
+        )
+        r2[2].metric(
+            "Cambio de fecha",
+            k.get("cambio_fecha", 0),
+            help="Citas movidas a otra fecha. No se cuentan como cancelación ni como no asistencia. Se restan del denominador de la ocupación.",
+        )
+        r2[3].metric(
+            "Huecos libres",
+            k["huecos_libres"],
+            help="Cupos liberados (cancelación, no asistencia o cambio de fecha) que no fueron ocupados por otra cita. Solo se calculan en fechas con horario.",
+        )
+        ocup_num = int(k.get("ocupacion_num", 0) or 0)
+        ocup_den = int(k.get("ocupacion_den", 0) or 0)
+        r2[4].metric(
             "Ocupación",
             f"{k['ocupacion']:.0%}" if k["ocupacion"] is not None else "—",
-            help="Citas que se mantienen (atendidas, confirmadas o agendadas) sobre citas, sin contar cambios de fecha.",
+            delta=f"{ocup_num} ÷ {ocup_den}" if ocup_den > 0 else None,
+            delta_color="off",
+            delta_arrow="off",
+            help=(
+                "Fórmula: (atendidas + confirmadas + agendadas) ÷ (citas del día − cambios de fecha). "
+                "Debajo del porcentaje aparece el cálculo con los números del día."
+            ),
         )
 
     st.write("")
     with st.container(border=True):
         st.subheader("Recuperación")
         a, b, cc = st.columns(3)
-        a.metric("En protocolo", n_cola)
-        b.metric("Recuperados (15 días)", res["recuperados"])
-        cc.metric("Fuera de protocolo", res["fuera_protocolo"])
+        a.metric(
+            "En protocolo",
+            n_cola,
+            help="Casos abiertos dentro de los 15 días del evento. Son los que aparecen en la cola de recuperación.",
+        )
+        b.metric(
+            "Recuperados (15 días)",
+            res["recuperados"],
+            help="Pacientes que volvieron a tener una cita válida dentro de los 15 días después del evento. Salen de la cola solos.",
+        )
+        cc.metric(
+            "Fuera de protocolo",
+            res["fuera_protocolo"],
+            help="Casos que ya pasaron los 15 días sin recuperación. No aparecen en la cola, pero se cuentan aquí.",
+        )
 
     st.write("")
     st.subheader("Huecos del día")
