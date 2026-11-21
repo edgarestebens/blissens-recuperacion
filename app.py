@@ -6,8 +6,10 @@ Lee data/blissens.db (se crea con: python -m src.load). No envía mensajes: solo
 """
 from __future__ import annotations
 
+import base64
 import re
 import sqlite3
+from pathlib import Path
 from urllib.parse import quote
 
 import pandas as pd
@@ -43,6 +45,18 @@ def _alerta_badge(alerta: str) -> str:
     return "gray"
 
 
+TIPOS_LEGIBLES = {
+    "cancelacion": "Cancelación",
+    "no_asistencia": "No asistió",
+    "diagnostico_sin_continuidad": "Diagnóstico sin continuidad",
+    "inactivo": "Inactivo",
+}
+
+
+def _tipo_legible(tipo: str) -> str:
+    return TIPOS_LEGIBLES.get(tipo, str(tipo).replace("_", " ").capitalize())
+
+
 def _campo_txt(fila: pd.Series, key: str) -> str | None:
     v = fila.get(key)
     if v is None or (isinstance(v, float) and pd.isna(v)) or pd.isna(v):
@@ -51,12 +65,106 @@ def _campo_txt(fila: pd.Series, key: str) -> str | None:
     return s or None
 
 
+LOGO_PATH = Path(__file__).parent / "assets" / "logo.png"
+if not LOGO_PATH.exists():
+    _jpeg = Path(__file__).parent / "image" / "logo.jpeg"
+    if _jpeg.exists():
+        LOGO_PATH = _jpeg
+
+
+def _logo_data_uri() -> str:
+    if not LOGO_PATH.exists():
+        return ""
+    raw = base64.b64encode(LOGO_PATH.read_bytes()).decode()
+    mime = "image/png" if LOGO_PATH.suffix.lower() == ".png" else "image/jpeg"
+    return f"data:{mime};base64,{raw}"
+
+
 st.set_page_config(
     page_title="Recuperación de pacientes · Blissens",
-    page_icon=":material/dentistry:",
+    page_icon=str(LOGO_PATH) if LOGO_PATH.exists() else ":material/dentistry:",
     layout="wide",
     initial_sidebar_state="expanded",
 )
+
+ESTILO_MARCA = """
+<style>
+/* Etiquetas en versalitas con tracking amplio, como en las portadas de Be Talks */
+.bl-eyebrow {
+    font-size: 0.72rem; font-weight: 600; letter-spacing: 0.18em;
+    text-transform: uppercase; color: #167A71; margin: 0 0 0.25rem 0;
+}
+.bl-marca { display: flex; align-items: center; gap: 0.85rem; margin-bottom: 0.25rem; }
+.bl-logo {
+    width: 52px; height: 52px; border-radius: 50%; background: #0B0B0C;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Cormorant Garamond', serif; font-weight: 700; font-size: 1.35rem;
+    color: #F3EEE6; letter-spacing: 0.02em;
+    box-shadow: 0 0 0 2px #0B0B0C, 0 0 0 4px #2FB5A8, 0 0 0 6px #8E7CC3;
+}
+.bl-logo-img { width: 56px; height: 56px; border-radius: 50%; flex-shrink: 0; }
+.bl-nombre { font-family: 'Cormorant Garamond', serif; font-size: 1.6rem; font-weight: 600; line-height: 1.1; color: #F3EEE6; }
+.bl-sub { font-size: 0.68rem; letter-spacing: 0.2em; text-transform: uppercase; color: #2FB5A8; }
+
+/* Titulares serif, con itálica para el énfasis */
+h1 { font-weight: 600 !important; letter-spacing: -0.01em; }
+h1 em, h2 em { font-style: italic; color: #167A71; }
+
+/* Sin iconos de enlace junto a los títulos */
+[data-testid="stHeaderActionElements"] { display: none; }
+
+/* Tarjetas con sombra suave */
+[data-testid="stVerticalBlockBorderWrapper"] { box-shadow: 0 1px 2px rgba(20,20,20,0.04), 0 6px 18px rgba(20,20,20,0.04); }
+
+/* Métricas: cifra en serif, etiqueta en versalitas */
+[data-testid="stMetricValue"] {
+    font-family: 'Cormorant Garamond', serif; font-weight: 600; font-size: 2.3rem;
+    font-variant-numeric: lining-nums; font-feature-settings: "lnum" 1;
+}
+[data-testid="stMetricLabel"] p {
+    font-size: 0.66rem; letter-spacing: 0.06em; text-transform: uppercase; color: #6F675B;
+    white-space: normal; overflow: visible; text-overflow: clip;
+}
+[data-testid="stMetricLabel"] { overflow: visible; }
+
+/* Pestañas */
+button[data-baseweb="tab"] p { font-size: 0.78rem; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 600; }
+
+/* Botón primario */
+.stButton > button[kind="primary"], .stFormSubmitButton > button[kind="primary"], a[data-testid="stBaseLinkButton-primary"] {
+    background: #0B0B0C; border-color: #0B0B0C; color: #F3EEE6; letter-spacing: 0.06em;
+}
+.stButton > button[kind="primary"]:hover, .stFormSubmitButton > button[kind="primary"]:hover, a[data-testid="stBaseLinkButton-primary"]:hover {
+    background: #167A71; border-color: #167A71; color: #FFFFFF;
+}
+
+/* Calendario React Aria: los días son div[role=button], no baseweb */
+td[role="gridcell"] div[role="button"],
+div[role="button"][aria-label*="2026"],
+div[role="button"][aria-label*="2025"],
+[data-testid="stDateInput"] table[role="grid"] div[role="button"] {
+    color: #FFFFFF !important;
+    -webkit-text-fill-color: #FFFFFF !important;
+}
+td[role="gridcell"] div[role="button"][aria-disabled="true"],
+div[role="button"][aria-label*="2026"][aria-disabled="true"] {
+    color: rgba(255, 255, 255, 0.45) !important;
+    -webkit-text-fill-color: rgba(255, 255, 255, 0.45) !important;
+}
+[data-testid="stDateInput"] table[role="grid"] th,
+[data-testid="stDateInput"] table[role="grid"] [role="columnheader"] {
+    color: #FFFFFF !important;
+    -webkit-text-fill-color: #FFFFFF !important;
+}
+section[data-testid="stSidebar"] [data-testid="stDateInput"] input,
+section[data-testid="stSidebar"] [data-baseweb="input"] input,
+section[data-testid="stSidebar"] [data-testid="stDateInput"] [data-baseweb="input"] {
+    color: #FFFFFF !important;
+    -webkit-text-fill-color: #FFFFFF !important;
+}
+</style>
+"""
+st.html(ESTILO_MARCA)
 
 try:
     aviso_carga = load.cargar_si_hace_falta()
@@ -76,8 +184,18 @@ db.init_db(con)
 fmin, fmax = rules.rango_fechas(con)
 
 with st.sidebar:
-    st.markdown("### Blissens")
-    st.caption("Recuperación de pacientes")
+    _logo_uri = _logo_data_uri()
+    _logo_html = (
+        f'<img class="bl-logo-img" src="{_logo_uri}" alt="Logo Blissens">'
+        if _logo_uri
+        else '<div class="bl-logo">BS</div>'
+    )
+    st.markdown(
+        f'<div class="bl-marca">{_logo_html}'
+        '<div><div class="bl-nombre">Blissens</div>'
+        '<div class="bl-sub">Wellness Dentist</div></div></div>',
+        unsafe_allow_html=True,
+    )
     st.divider()
     st.markdown("**Trabajo del día**")
     R = st.date_input(
@@ -106,8 +224,8 @@ with st.sidebar:
 # ---------- Cabecera ----------
 h1, h2 = st.columns([3, 1], vertical_alignment="bottom")
 with h1:
-    st.title("Recuperación de pacientes")
-    st.caption("Blissens Odontología · seguimiento día 3, 7 y 15 con datos de contacto")
+    st.markdown('<p class="bl-eyebrow">Blissens · Seguimiento día 3, 7 y 15</p>', unsafe_allow_html=True)
+    st.title("Recuperación de *pacientes*")
 with h2:
     st.markdown(f"**Fecha de referencia**  \n{R:%d/%m/%Y}")
 
@@ -125,81 +243,25 @@ tab_panel, tab_cola, tab_chat = st.tabs(
 with tab_panel:
     with st.container(border=True):
         st.subheader("Agenda del día")
-        r1 = st.columns(4)
-        r1[0].metric(
-            "Citas",
-            k["citas"],
-            help="Todas las citas agendadas para la fecha de referencia, sin importar el estado.",
-        )
-        r1[1].metric(
-            "Atendidas",
-            k["atendidas"],
-            help="Citas con estado Atendido en la fecha de referencia.",
-        )
-        r1[2].metric(
-            "Confirmadas",
-            k.get("confirmadas", 0),
-            help="Citas confirmadas por teléfono, WhatsApp o email. Entran en el numerador de la ocupación.",
-        )
-        r1[3].metric(
-            "Agendadas",
-            k.get("agendadas", 0),
-            help="Citas aún no confirmadas (por ejemplo no confirmado o notificación enviada). Entran en el numerador de la ocupación.",
-        )
-        r2 = st.columns(5)
-        r2[0].metric(
-            "No asistieron",
-            k["no_asiste"],
-            help="Citas con estado No asiste en la fecha de referencia.",
-        )
-        r2[1].metric(
-            "Cancelaciones",
-            k["cancelaciones"],
-            help="Citas anuladas, incluidas las anuladas por el paciente vía WhatsApp.",
-        )
-        r2[2].metric(
-            "Cambio de fecha",
-            k.get("cambio_fecha", 0),
-            help="Citas movidas a otra fecha. No se cuentan como cancelación ni como no asistencia. Se restan del denominador de la ocupación.",
-        )
-        r2[3].metric(
-            "Huecos libres",
-            k["huecos_libres"],
-            help="Cupos liberados (cancelación, no asistencia o cambio de fecha) que no fueron ocupados por otra cita. Solo se calculan en fechas con horario.",
-        )
-        ocup_num = int(k.get("ocupacion_num", 0) or 0)
-        ocup_den = int(k.get("ocupacion_den", 0) or 0)
-        r2[4].metric(
+        c1, c2, c3, c4, c5, c6 = st.columns(6)
+        c1.metric("Citas", k["citas"])
+        c2.metric("Atendidas", k["atendidas"])
+        c3.metric("No asistieron", k["no_asiste"])
+        c4.metric("Cancelaciones", k["cancelaciones"])
+        c5.metric("Huecos libres", k["huecos_libres"])
+        c6.metric(
             "Ocupación",
             f"{k['ocupacion']:.0%}" if k["ocupacion"] is not None else "—",
-            delta=f"{ocup_num} ÷ {ocup_den}" if ocup_den > 0 else None,
-            delta_color="off",
-            delta_arrow="off",
-            help=(
-                "Fórmula: (atendidas + confirmadas + agendadas) ÷ (citas del día − cambios de fecha). "
-                "Debajo del porcentaje aparece el cálculo con los números del día."
-            ),
+            help="Citas que se mantienen (atendidas, confirmadas o agendadas) sobre citas, sin contar cambios de fecha.",
         )
 
     st.write("")
     with st.container(border=True):
         st.subheader("Recuperación")
         a, b, cc = st.columns(3)
-        a.metric(
-            "En protocolo",
-            n_cola,
-            help="Casos abiertos dentro de los 15 días del evento. Son los que aparecen en la cola de recuperación.",
-        )
-        b.metric(
-            "Recuperados (15 días)",
-            res["recuperados"],
-            help="Pacientes que volvieron a tener una cita válida dentro de los 15 días después del evento. Salen de la cola solos.",
-        )
-        cc.metric(
-            "Fuera de protocolo",
-            res["fuera_protocolo"],
-            help="Casos que ya pasaron los 15 días sin recuperación. No aparecen en la cola, pero se cuentan aquí.",
-        )
+        a.metric("En protocolo", n_cola)
+        b.metric("Recuperados (15 días)", res["recuperados"])
+        cc.metric("Fuera de protocolo", res["fuera_protocolo"])
 
     st.write("")
     st.subheader("Huecos del día")
@@ -269,24 +331,26 @@ with tab_cola:
         alerta_opts = sorted({a for a in vista["alerta"].dropna().astype(str)})
         alerta_colors = [_alerta_badge(a) for a in alerta_opts]
 
-        tabla = vista[
-            ["grupo", "paciente", "celular", "email", "tipo", "fecha_evento", "dias", "alerta_badge", "intentos", "antiguedad"]
-        ].copy()
+        # Sin celular ni email en la tabla: se ven solo en la ficha del paciente elegido.
+        tabla = vista[["paciente", "tipo", "fecha_evento", "dias", "alerta_badge", "intentos", "grupo"]].copy()
+        tabla["tipo"] = tabla["tipo"].map(_tipo_legible)
         tabla["fecha_evento"] = pd.to_datetime(tabla["fecha_evento"]).dt.strftime("%d/%m/%Y")
 
-        st.dataframe(
+        st.caption("Haga clic en una fila para abrir la ficha del paciente.")
+        seleccion = st.dataframe(
             tabla,
             hide_index=True,
             width="stretch",
-            alt="Cola de recuperación con datos del paciente",
+            height=320,
+            on_select="rerun",
+            selection_mode="single-row",
+            key=f"tabla_cola_{grupo_sel}",
+            alt="Cola de recuperación: seleccione una fila para ver la ficha",
             column_config={
-                "grupo": st.column_config.TextColumn("Grupo", width="medium"),
                 "paciente": st.column_config.TextColumn("Paciente", width="medium"),
-                "celular": "Celular",
-                "email": "Email",
-                "tipo": "Evento",
-                "fecha_evento": "Fecha evento",
-                "dias": st.column_config.NumberColumn("Días", format="%d"),
+                "tipo": st.column_config.TextColumn("Evento", width="medium"),
+                "fecha_evento": st.column_config.TextColumn("Fecha", width="medium"),
+                "dias": st.column_config.NumberColumn("Días", format="%d", width="small"),
                 "alerta_badge": st.column_config.MultiselectColumn(
                     "Alerta",
                     options=alerta_opts,
@@ -294,21 +358,15 @@ with tab_cola:
                     disabled=True,
                     width="small",
                 ),
-                "intentos": "Intentos",
-                "antiguedad": "Antigüedad",
+                "intentos": st.column_config.NumberColumn("Intentos", width="small"),
+                "grupo": st.column_config.TextColumn("Grupo", width="medium"),
             },
         )
 
-        etiquetas = {
-            r.evento_id: f"{r.paciente} · {r.tipo} · {r.alerta} · {r.dias} días"
-            for r in vista.itertuples()
-        }
-        evento_id = st.selectbox(
-            "Paciente a contactar",
-            list(etiquetas),
-            format_func=lambda i: etiquetas[i],
-        )
-        fila = vista[vista["evento_id"] == evento_id].iloc[0]
+        filas_sel = seleccion.selection.rows
+        idx = filas_sel[0] if filas_sel else 0
+        evento_id = vista.iloc[idx]["evento_id"]
+        fila = vista.iloc[idx]
         es_cancelacion = fila["tipo"] == "cancelacion"
         sin_motivo = es_cancelacion and not fila["motivo"]
 
@@ -321,7 +379,7 @@ with tab_cola:
                 with badges:
                     st.badge(str(fila["alerta"]), color=_alerta_badge(str(fila["alerta"])))
                     st.badge(str(fila["antiguedad"]), color="gray")
-                    st.badge(str(fila["tipo"]), color="violet")
+                    st.badge(_tipo_legible(fila["tipo"]), color="violet")
 
                 if pd.notna(fila.get("id_software")):
                     st.caption(f"ID software · {int(fila['id_software'])}")
@@ -338,7 +396,7 @@ with tab_cola:
                 st.divider()
                 st.markdown(
                     f"**Grupo:** {fila['grupo']}  \n"
-                    f"**Evento:** {fila['tipo']} el {pd.Timestamp(fila['fecha_evento']):%d/%m/%Y}  \n"
+                    f"**Evento:** {_tipo_legible(fila['tipo'])} el {pd.Timestamp(fila['fecha_evento']):%d/%m/%Y}  \n"
                     f"**Días desde el evento:** {int(fila['dias'])}"
                 )
                 if es_cancelacion:
@@ -458,13 +516,28 @@ with tab_chat:
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = []
 
-    chat_container = st.container(height=400, border=True)
+    chat_container = st.container(height=300, border=True)
     with chat_container:
+        if not st.session_state.chat_history:
+            st.markdown('<p class="bl-eyebrow">Pregúntame sobre el día</p>', unsafe_allow_html=True)
+            st.caption("Elija una sugerencia o escriba su propia pregunta abajo.")
         for msg in st.session_state.chat_history:
             with st.chat_message(msg["role"]):
                 st.markdown(msg["content"])
 
-    pregunta = st.chat_input("Haz una pregunta...")
+    sugerida = None
+    if not st.session_state.chat_history:
+        sugerencias = [
+            "¿Cuántas citas se cancelaron hoy?",
+            "¿A quién debo contactar primero?",
+            "¿Qué pacientes están en alerta del día 15?",
+        ]
+        cols_sug = st.columns(len(sugerencias))
+        for col, texto_sug in zip(cols_sug, sugerencias):
+            if col.button(texto_sug, key=f"sug_{texto_sug}", width="stretch"):
+                sugerida = texto_sug
+
+    pregunta = st.chat_input("Haz una pregunta...") or sugerida
 
     if pregunta:
         st.session_state.chat_history.append({"role": "user", "content": pregunta})
