@@ -1,2 +1,25 @@
 [theme]
-primaryColor = "#2563EB"
+primaryColor = "#1C3664"
+backgroundColor = "#F5F7FB"
+secondaryBackgroundColor = "#FFFFFF"
+textColor = "#1A2332"
+linkColor = "#1C3664"
+borderColor = "#D5DCE8"
+baseRadius = "0.5rem"
+font = "DM Sans:https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap"
+headingFont = "Fraunces:https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap"
+headingFontWeights = [650, 650, 600, 600, 600, 600]
+showWidgetBorder = true
+dataframeBorderColor = "#D5DCE8"
+dataframeHeaderBackgroundColor = "#E8EEF6"
+blueColor = "#1C3664"
+blueTextColor = "#1C3664"
+blueBackgroundColor = "#E8EEF6"
+
+[theme.sidebar]
+backgroundColor = "#1C3664"
+secondaryBackgroundColor = "#254677"
+textColor = "#F5F7FB"
+borderColor = "#2F5585"
+primaryColor = "#8EB4E8"
+linkColor = "#B7D0F2"
