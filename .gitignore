@@ -1,10 +1,13 @@
 # Datos reales y base local: nunca se versionan
 *.xlsx
+!documentos iniciales/*.xlsx
 !data/agenda_anonimizada.xlsx
 *.db
 *.sqlite
 data/.salt
 data/linea_base.json
-documentos iniciales/
+# En documentos iniciales solo se versionan los Excel (arriba); el resto no
+documentos iniciales/*
+!documentos iniciales/*.xlsx
 __pycache__/
 .venv/
