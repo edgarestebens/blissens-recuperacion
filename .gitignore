@@ -11,3 +11,5 @@ documentos iniciales/*
 !documentos iniciales/*.xlsx
 __pycache__/
 .venv/
+# Bloqueos temporales de Word/Office (no versionar)
+~$*
