@@ -6,13 +6,30 @@ Lee data/blissens.db (se crea con: python -m src.load). No envía mensajes: solo
 """
 from __future__ import annotations
 
+import re
 import sqlite3
+from urllib.parse import quote
 
 import pandas as pd
 import streamlit as st
 
 from src import db, load, messages, rules
 from src.chatbot import responder
+
+
+def _digitos_celular(valor: str | None) -> str:
+    return re.sub(r"\D", "", valor or "")
+
+
+def _celular_paciente(fila: pd.Series) -> str:
+    """Celular del paciente en la base, o vacío si no hay (la auxiliar lo escribe a mano)."""
+    raw = fila.get("celular")
+    if raw is None or (isinstance(raw, float) and pd.isna(raw)) or pd.isna(raw):
+        return ""
+    texto = str(raw).strip()
+    if texto.endswith(".0"):
+        texto = texto[:-2]
+    return _digitos_celular(texto) or texto
 
 st.set_page_config(page_title="Recuperación de pacientes · Blissens", layout="wide")
 
@@ -196,11 +213,40 @@ with tab_cola:
                 fila["nombre"] if pd.notna(fila.get("nombre")) else None,
                 fila["apellidos"] if pd.notna(fila.get("apellidos")) else None,
             )
-            if pd.notna(fila.get("celular")):
-                st.caption(f"Plantilla: {plantilla}. Celular: {fila['celular']}. Copie el mensaje y envíelo a mano.")
-            else:
-                st.caption(f"Plantilla: {plantilla}. Sin celular en la base; busque el contacto en el software.")
+            st.caption(f"Plantilla: {plantilla}. Revise el número y abra WhatsApp para enviar.")
             st.code(texto, language=None)
+
+            cel_paciente = _celular_paciente(fila)
+            wa_key = f"wa_cel_{int(evento_id)}"
+            if wa_key not in st.session_state:
+                st.session_state[wa_key] = cel_paciente
+
+            if cel_paciente:
+                st.caption(f"Celular del paciente en la base: {cel_paciente}")
+            else:
+                st.caption("Este paciente no tiene celular en la base. Escríbalo manualmente.")
+
+            numero = st.text_input(
+                "Número de celular",
+                key=wa_key,
+                placeholder="Ej. 573001234567",
+                help="Si está en la base se carga solo. Si no, escríbalo a mano (código 57 + número).",
+            )
+            digitos = _digitos_celular(numero)
+            listo = len(digitos) >= 10
+            url_wa = f"https://wa.me/{digitos}?text={quote(texto)}" if listo else ""
+            st.link_button(
+                "Abrir WhatsApp",
+                url_wa or "https://wa.me/",
+                type="primary",
+                icon=":material/chat:",
+                width="stretch",
+                disabled=not listo,
+                help="Abre WhatsApp Web o la app con el mensaje listo para enviar.",
+            )
+            if not listo:
+                st.caption("Ingrese un número válido (mínimo 10 dígitos) para habilitar el botón.")
+
 
 with tab_chat:
 
