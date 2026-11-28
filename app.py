@@ -257,7 +257,10 @@ with tab_panel:
         r1[2].metric(
             "Confirmadas",
             k["confirmadas"],
-            help="Confirmado por teléfono, WhatsApp o email. Cuentan en la ocupación.",
+            help=(
+                "Confirmado por teléfono, WhatsApp o email. Cuentan en la ocupación. "
+                "El detalle del día está en la tabla Confirmadas del día."
+            ),
         )
         r1[3].metric(
             "Agendadas",
@@ -303,6 +306,34 @@ with tab_panel:
             f"{k['ocupacion']:.0%}" if k["ocupacion"] is not None else "—",
             help=ayuda_ocup,
         )
+
+    st.write("")
+    with st.container(border=True):
+        st.subheader("Confirmadas del día")
+        conf_dia = res["confirmadas_dia"]
+        st.caption(
+            "Citas en estado confirmado ese día. Según la clínica, las de meses anteriores "
+            "suelen ser citas no cerradas (pendientes de depurar como inasistencia), no necesariamente atendidas."
+        )
+        if conf_dia.empty:
+            st.info(
+                "No hay citas confirmadas en esta fecha.",
+                icon=":material/info:",
+                title="Sin confirmadas",
+            )
+        else:
+            st.dataframe(
+                conf_dia,
+                hide_index=True,
+                width="stretch",
+                alt="Citas confirmadas del día para depuración",
+                column_config={
+                    "hora": st.column_config.TextColumn("Hora", width="medium"),
+                    "sillon": st.column_config.TextColumn("Sillón", width="small"),
+                    "paciente": st.column_config.TextColumn("Paciente", width="large"),
+                    "id_software": st.column_config.NumberColumn("ID software", format="%d", width="small"),
+                },
+            )
 
     st.write("")
     with st.container(border=True):

@@ -274,6 +274,23 @@ def calcular(con: sqlite3.Connection, R) -> dict:
         "huecos_reocupados": int((huecos["ocupado"] == "Sí").sum()) if not huecos.empty else 0,
     }
 
+    conf = dia[dia["estado"] == "confirmada"].copy()
+    if conf.empty:
+        confirmadas_dia = pd.DataFrame(columns=["hora", "sillon", "paciente", "id_software"])
+    else:
+        conf = conf.sort_values(["hora_inicio", "sillon"], na_position="last")
+        confirmadas_dia = pd.DataFrame(
+            {
+                "hora": [
+                    f"{hi}–{hf}" if pd.notna(hi) and pd.notna(hf) else "—"
+                    for hi, hf in zip(conf["hora_inicio"], conf["hora_fin"])
+                ],
+                "sillon": conf["sillon"].fillna("—").astype(str),
+                "paciente": [etiqueta_paciente(r) for _, r in conf.iterrows()],
+                "id_software": conf["id_software"],
+            }
+        ).reset_index(drop=True)
+
     return {
         "kpis": kpis,
         "huecos": huecos,
@@ -281,6 +298,7 @@ def calcular(con: sqlite3.Connection, R) -> dict:
         "cola": cola,
         "recuperados": recuperados,
         "fuera_protocolo": fuera,
+        "confirmadas_dia": confirmadas_dia,
     }
 
 
