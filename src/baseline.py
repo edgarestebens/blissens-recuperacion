@@ -10,8 +10,9 @@ Definiciones (se congelan antes de la Prueba 2):
 - Tasa de no asistencia  = no_asiste / denominador
 - Tasa de cancelación    = (anulado + anulado_paciente) / denominador
 - % reagendado           = eventos (cancelación o no asistencia) con otra cita del mismo paciente
-                           en estado atendido/confirmada/agendada entre la fecha del evento y +15 días,
+                           en estado atendido/agendada entre la fecha del evento y +15 días,
                            sobre eventos con 15 días ya transcurridos (los recientes se excluyen).
+                           (confirmada no cuenta: pendiente de depuración según la clínica.)
 - Huecos ocupados        = citas liberadas (anulado, anulado_paciente, no_asiste, cambio_fecha) cuyo
                            cupo (misma fecha y sillón, horas solapadas) fue tomado por otra cita válida.
                            Solo medible en las fechas que traen hora.
@@ -28,7 +29,7 @@ from .db import ROOT, connect
 
 PERDIDA = {"anulado", "anulado_paciente", "no_asiste"}
 LIBERA_CUPO = PERDIDA | {"cambio_fecha"}
-VALIDAS = {"atendido", "confirmada", "agendada"}
+VALIDAS = {"atendido", "agendada"}
 VENTANA_DIAS = 15
 
 

@@ -258,8 +258,9 @@ with tab_panel:
             "Confirmadas",
             k["confirmadas"],
             help=(
-                "Confirmado por teléfono, WhatsApp o email. Cuentan en la ocupación. "
-                "El detalle del día está en la tabla Confirmadas del día."
+                "Confirmado por teléfono, WhatsApp o email. No cuentan como atendidas ni en la "
+                "ocupación ni como recuperación: la clínica las trata como pendientes de depurar. "
+                "El detalle está en Confirmadas del día."
             ),
         )
         r1[3].metric(
@@ -293,13 +294,14 @@ with tab_panel:
         )
         if k["ocupacion"] is not None:
             ayuda_ocup = (
-                f"Ocupación = (atendidas + confirmadas + agendadas) ÷ (citas − cambio de fecha) "
-                f"= {k['ocupacion_num']} ÷ {k['ocupacion_den']} = {k['ocupacion']:.0%}"
+                f"Ocupación = (atendidas + agendadas) ÷ (citas − cambio de fecha) "
+                f"= {k['ocupacion_num']} ÷ {k['ocupacion_den']} = {k['ocupacion']:.0%}. "
+                "Las confirmadas no entran: pendientes de depuración."
             )
         else:
             ayuda_ocup = (
-                "Ocupación = (atendidas + confirmadas + agendadas) ÷ (citas − cambio de fecha). "
-                "Sin citas en el denominador para este día."
+                "Ocupación = (atendidas + agendadas) ÷ (citas − cambio de fecha). "
+                "Las confirmadas no entran. Sin citas en el denominador para este día."
             )
         r2[1].metric(
             "Ocupación",
@@ -312,8 +314,9 @@ with tab_panel:
         st.subheader("Confirmadas del día")
         conf_dia = res["confirmadas_dia"]
         st.caption(
-            "Citas en estado confirmado ese día. Según la clínica, las de meses anteriores "
-            "suelen ser citas no cerradas (pendientes de depurar como inasistencia), no necesariamente atendidas."
+            "Citas en estado confirmado ese día. No suman a ocupación ni cierran recuperación: "
+            "según la clínica son citas no cerradas, pendientes de depurar como inasistencia "
+            "(no se meten solas a la cola hasta cerrar el estado en el software)."
         )
         if conf_dia.empty:
             st.info(
@@ -347,7 +350,7 @@ with tab_panel:
         b.metric(
             "Recuperados (15 días)",
             res["recuperados"],
-            help="Pacientes con una cita válida (atendida, confirmada o agendada) dentro de los 15 días posteriores al evento.",
+            help="Pacientes con una cita válida (atendida o agendada) dentro de los 15 días posteriores al evento. Las confirmadas no cuentan.",
         )
         cc.metric(
             "Fuera de protocolo",

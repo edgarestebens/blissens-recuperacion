@@ -11,6 +11,11 @@ Grupos de la cola
 Protocolo: el evento arranca en fecha_evento. Alertas en el día 3, 7 y 15. Si un paciente
 tiene una cita válida dentro de los 15 días siguientes, sale de la cola como recuperado.
 Pasados 15 días sin recuperación, sale de la cola ("fuera de protocolo") hasta que se cierre.
+
+Confirmadas: la clínica indica que "Confirmado" (sobre todo de meses ya cerrados) suele ser
+cita no cerrada en el software, pendiente de depurar como inasistencia — no como atendido.
+Por eso confirmada no entra en VALIDAS ni en la ocupación; se lista aparte para depuración
+y no se mete sola a la cola hasta que se cierre el estado en agenda.
 """
 from __future__ import annotations
 
@@ -40,7 +45,10 @@ MOTIVOS = [
 CANCELACION = {"anulado", "anulado_paciente"}
 PERDIDA = CANCELACION | {"no_asiste"}
 LIBERA_CUPO = PERDIDA | {"cambio_fecha"}
-VALIDAS = {"atendido", "confirmada", "agendada"}
+# Cita que sí cuenta como continuidad / ocupación / hueco ocupado.
+# confirmada queda fuera: pendiente de depuración, no se trata como atendido.
+VALIDAS = {"atendido", "agendada"}
+EN_PIE = VALIDAS
 
 GRUPO_TRAT = "1. Tratamiento interrumpido"
 GRUPO_NUEVO = "2. Paciente nuevo que no volvió"
@@ -258,7 +266,7 @@ def calcular(con: sqlite3.Connection, R) -> dict:
     total = len(dia)
     cambio = int(n.get("cambio_fecha", 0))
     base = total - cambio
-    en_pie = int(sum(n.get(e, 0) for e in ("atendido", "confirmada", "agendada")))
+    en_pie = int(sum(n.get(e, 0) for e in EN_PIE))
     kpis = {
         "citas": total,
         "atendidas": int(n.get("atendido", 0)),
